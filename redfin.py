@@ -24,6 +24,7 @@ if requests.__version__ < '2.2.4':
 
 UA_HEADER = 'Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/41.0.2228.0 Safari/537.36'
 
+# resp = redfin.get('/county/345/CA/Santa-Clara-County/filter/sort=lo-days,property-type=house+condo+townhouse,min-price=450k,max-price=900k')
 # dl_all = '/stingray/api/gis-csv?al=3&market=sanfrancisco&max_price=900000&min_price=450000&num_homes=350&ord=days-on-redfin-asc&page_number=1&region_id=345&region_type=5&sf=1,2,3,5,6,7&sp=true&status=9&uipt=1,2,3&v=8&zoomLevel=8'
 dl_all = '/stingray/api/gis-csv?al=3&market=sanfrancisco&max_price=900000&min_price=450000&ord=days-on-redfin-asc&page_number=1&region_id=345&region_type=5&sf=1,2,3,5,6,7&sp=true&status=9&uipt=1,2,3&v=8&zoomLevel=8'
 
@@ -78,6 +79,27 @@ class Redfin(object):
 
 
 class CsvData(object):
+    def __init__(self, header, data):
+        self.header = header
+        self.data = data
+        self.field_map = dict()
+        for idx in range(len(self.header)):
+            self.field_map[self.header[idx]] = idx
+
+    def get_header(self):
+        return self.header
+
+    def iter_by_fields(self, *args):
+        sub_csv = list()
+        print(args)
+        for name in args:
+            assert(name in self.field_map)
+            idx = self.field_map[name]
+            sub_csv.append([row[idx] for row in self.data])
+        # return list(array) of list instead of tuple(zip returned by default)
+        return map(list, zip(*sub_csv))
+
+class CsvData_OLD(object):
     def __init__(self, data):
         data = data.strip('\n').strip('\r').split('\n')
         self.header = data[0].strip('\n').strip('\r').split(',')
@@ -161,8 +183,8 @@ def get_cvs(redfin):
     with open('download_all.csv', 'w+') as f:
         f.write(data)
 
-    csvdata = CsvData(data)
-    print(csvdata.get_header())
+    data = list(csv.reader(data))
+    csvdata = CsvData(data[0], data[1:])
     urls = [c[0] for c in csvdata.iter_by_fields('URL')]
     data_store = dict()
     data_store['csv_header'] = csvdata.header
