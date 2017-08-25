@@ -118,10 +118,31 @@ def extend_distance_matrix(ds):
 
     print('addrs len:%d' % len(addrs), 'drv info len:%d' % cnt)
     ds['csv_header'].extend(['DRIVE DISTANCE(KM)', 'DRIVE DURATION(MIN)'])
+    return ds
 
 
 def extend_is_senior(ds):
-    pass
+    def url_strip(u):
+        return u.split('redfin.com')[1] if u.find('redfin.com') > 0 else u
+
+    csvdata = CsvData(ds['csv_header'], ds['csv_data'])
+    urls = map(lambda u: u[0], csvdata.iter_by_fields('URL'))
+    urls = map(url_strip, urls)
+    csv_header = ds['csv_header'].extend(['IS SENIOR'])
+    csv_header = ds['csv_header']
+    csv_data = ds['csv_data']
+    url_idx = csv_header.index('URL')
+    details = ds['details']
+    for i in range(len(csv_data)):
+        url = url_strip(csv_data[i][url_idx])
+        print(url)
+        csv_data[i].extend(
+            'Y' if url in details and details[url].get('is_senior') else 'N')
+
+    print(csv_header)
+    print(ds['csv_header'])
+    print(csv_data[0])
+    print(ds['csv_data'][0])
 
 
 data_store = json.load(open('redfin_data_store.json'))
@@ -130,10 +151,47 @@ extend_distance_matrix(extend_school_info(data_store))
 with open('redfin_data_store_processed.json', 'w+') as f:
     f.write(json.dumps(data_store))
 
+data_store = json.load(open('redfin_data_store_processed.json'))
 print(data_store['csv_header'])
 print(data_store['csv_data'][0])
+extend_is_senior(data_store)
+with open('redfin_data_store_processed_is_senior.json', 'w+') as f:
+    f.write(json.dumps(data_store))
+
 
 with open('redfin_prop_info.csv', 'w+t') as f:
     csv_out = csv.writer(f, quoting=csv.QUOTE_NONNUMERIC)
     csv_out.writerow(data_store['csv_header'])
     map(csv_out.writerow, data_store['csv_data'])
+
+# only keep below fileds:
+interested_fields = (
+    "URL",
+    "IS SENIOR",
+    "PRICE",
+    "SCHOOL SCORE",
+    "SCHOOL DISTANCE",
+    "SCHOOL NAME",
+    "DRIVE DISTANCE(KM)",
+    "DRIVE DURATION(MIN)",
+    "DAYS ON MARKET",
+    "PROPERTY TYPE",
+    "LOCATION",
+    "ZIP",
+    "BEDS",
+    "BATHS",
+    "SQUARE FEET",
+    "YEAR BUILT",
+    "HOA/MONTH",
+    "FAVORITE",
+    "NEXT OPEN HOUSE START TIME",
+    "NEXT OPEN HOUSE END TIME"
+)
+with open('redfin_prop_info_clean.csv', 'w+t') as f:
+    csvd = CsvData(data_store['csv_header'], data_store['csv_data'])
+    new_ds = csvd.iter_by_fields(*interested_fields)
+    csv_out = csv.writer(f, quoting=csv.QUOTE_NONNUMERIC)
+    csv_out.writerow(interested_fields)
+    map(csv_out.writerow, new_ds)
+    print(interested_fields)
+    print(new_ds[0])

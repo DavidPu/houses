@@ -26,7 +26,11 @@ UA_HEADER = 'Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko)
 
 # resp = redfin.get('/county/345/CA/Santa-Clara-County/filter/sort=lo-days,property-type=house+condo+townhouse,min-price=450k,max-price=900k')
 # dl_all = '/stingray/api/gis-csv?al=3&market=sanfrancisco&max_price=900000&min_price=450000&num_homes=350&ord=days-on-redfin-asc&page_number=1&region_id=345&region_type=5&sf=1,2,3,5,6,7&sp=true&status=9&uipt=1,2,3&v=8&zoomLevel=8'
-dl_all = '/stingray/api/gis-csv?al=3&market=sanfrancisco&max_price=900000&min_price=450000&ord=days-on-redfin-asc&page_number=1&region_id=345&region_type=5&sf=1,2,3,5,6,7&sp=true&status=9&uipt=1,2,3&v=8&zoomLevel=8'
+dl_all = {
+    '/stingray/api/gis-csv?al=3&market=sanfrancisco&max_price=900000&min_price=450000&ord=days-on-redfin-asc&page_number=1&region_id=345&region_type=5&sf=1,2,3,5,6,7&sp=true&status=9&uipt=1,2,3&v=8',
+    '/stingray/api/gis-csv?al=3&market=sanfrancisco&max_price=900000&min_price=450000&ord=days-on-redfin-asc&page_number=1&region_id=303&region_type=5&sf=1,2,3,5,6,7&sp=true&status=9&uipt=1,2,3&v=8',
+    '/stingray/api/gis-csv?al=3&market=sanfrancisco&max_price=900000&min_price=450000&ord=days-on-redfin-asc&page_number=1&region_id=343&region_type=5&sf=1,2,3,5,6,7&sp=true&status=9&uipt=1,2,3&v=8'
+}
 
 class Redfin(object):
     def __init__(self):
@@ -56,7 +60,7 @@ class Redfin(object):
         cookies = json.load(open('cookies.json'))
         for c in cookies:
             self.session.cookies.set(c[0], c[1])
-        resp = self.get(dl_all)
+        resp = self.get(dl_all[0])
         if resp.status_code != 200:
             self.session.cookies.clear()
             return 400
@@ -98,6 +102,7 @@ class CsvData(object):
             sub_csv.append([row[idx] for row in self.data])
         # return list(array) of list instead of tuple(zip returned by default)
         return map(list, zip(*sub_csv))
+
 
 class CsvData_OLD(object):
     def __init__(self, data):
@@ -172,23 +177,37 @@ def details(html):
     return info
 
 
+# return tuple: ([cvs header], [cvs data])
+def download_one_cvs(redfin, url):
+    resp = redfin.get(url)
+    assert(resp.status_code == 200)
+    data = re.sub(r'URL \([^\)]+\)', 'URL', resp.content)
+    data = data.strip('\n').strip('\r').split('\n')
+    csv_header = data[0].strip('\n').strip('\r').split(',')
+    csv_data = list(csv.reader(data[1:]))
+    return (csv_header, csv_data)
+
+
 def get_cvs(redfin):
     resp = redfin.get('/county/345/CA/Santa-Clara-County/filter/sort=lo-days,property-type=house+condo+townhouse,min-price=450k,max-price=900k')
     with open('all.html', 'w+') as f:
         f.write(resp.content)
 
-    resp = redfin.get(dl_all)
-    data = re.sub(r'URL \([^\)]+\)', 'URL', resp.content)
-
+    all_csv = map(download_one_cvs, dl_all)
+    csv_header = all_csv[0][0]
+    all_csv = map(lambda d: d[1:], all_csv)
+    csv_data = reduce(lambda l, r: l + r, all_csv)
     with open('download_all.csv', 'w+') as f:
-        f.write(data)
+        f.write(all_csv[0][0])
 
-    data = list(csv.reader(data))
-    csvdata = CsvData(data[0], data[1:])
+    data = data.strip('\n').strip('\r').split('\n')
+    csv_header = data[0].strip('\n').strip('\r').split(',')
+    csv_data = list(csv.reader(data[1:]))
+    csvdata = CsvData(csv_header, csv_data)
     urls = [c[0] for c in csvdata.iter_by_fields('URL')]
     data_store = dict()
-    data_store['csv_header'] = csvdata.header
-    data_store['csv_data'] = csvdata.data
+    data_store['csv_header'] = csv_header
+    data_store['csv_data'] = csv_data
     data_store['details'] = dict()
     for url in urls:
         url = url.split('redfin.com')[1] if url.find('redfin.com') >= 0 else url
