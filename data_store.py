@@ -35,7 +35,6 @@ class CsvData(object):
 
     def iter_by_fields(self, *args):
         sub_csv = list()
-        print(args)
         for name in args:
             assert(name in self.field_map)
             idx = self.field_map[name]

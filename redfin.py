@@ -97,34 +97,12 @@ class CsvData(object):
 
     def iter_by_fields(self, *args):
         sub_csv = list()
-        print(args)
         for name in args:
             assert(name in self.field_map)
             idx = self.field_map[name]
             sub_csv.append([row[idx] for row in self.data])
         # return list(array) of list instead of tuple(zip returned by default)
         return map(list, zip(*sub_csv))
-
-
-class CsvData_OLD(object):
-    def __init__(self, data):
-        data = data.strip('\n').strip('\r').split('\n')
-        self.header = data[0].strip('\n').strip('\r').split(',')
-        self.data = list(csv.reader(data[1:]))
-        self.field_map = dict()
-        for idx in range(len(self.header)):
-            self.field_map[self.header[idx]] = idx
-
-    def get_header(self):
-        return self.header
-
-    def iter_by_fields(self, *args):
-        sub_csv = list()
-        for name in args:
-            assert(name in self.field_map)
-            idx = self.field_map[name]
-            sub_csv.append(map(lambda row: row[idx], self.data))
-        return zip(*sub_csv)
 
 
 def details(html):
