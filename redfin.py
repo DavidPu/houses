@@ -13,12 +13,14 @@ import re
 import md5
 import json
 import requests
-import requests_cache
 from bs4 import BeautifulSoup
+
 '''
+import requests_cache
 requests_cache.install_cache(os.path.join(os.path.dirname(__file__),
                             'redfin_cache'))
 '''
+
 if requests.__version__ < '2.2.4':
     requests.packages.urllib3.disable_warnings()
 
@@ -26,11 +28,11 @@ UA_HEADER = 'Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko)
 
 # resp = redfin.get('/county/345/CA/Santa-Clara-County/filter/sort=lo-days,property-type=house+condo+townhouse,min-price=450k,max-price=900k')
 # dl_all = '/stingray/api/gis-csv?al=3&market=sanfrancisco&max_price=900000&min_price=450000&num_homes=350&ord=days-on-redfin-asc&page_number=1&region_id=345&region_type=5&sf=1,2,3,5,6,7&sp=true&status=9&uipt=1,2,3&v=8&zoomLevel=8'
-dl_all = {
+dl_all = [
     '/stingray/api/gis-csv?al=3&market=sanfrancisco&max_price=900000&min_price=450000&ord=days-on-redfin-asc&page_number=1&region_id=345&region_type=5&sf=1,2,3,5,6,7&sp=true&status=9&uipt=1,2,3&v=8',
     '/stingray/api/gis-csv?al=3&market=sanfrancisco&max_price=900000&min_price=450000&ord=days-on-redfin-asc&page_number=1&region_id=303&region_type=5&sf=1,2,3,5,6,7&sp=true&status=9&uipt=1,2,3&v=8',
     '/stingray/api/gis-csv?al=3&market=sanfrancisco&max_price=900000&min_price=450000&ord=days-on-redfin-asc&page_number=1&region_id=343&region_type=5&sf=1,2,3,5,6,7&sp=true&status=9&uipt=1,2,3&v=8'
-}
+]
 
 class Redfin(object):
     def __init__(self):
@@ -189,20 +191,24 @@ def download_one_cvs(redfin, url):
 
 
 def get_cvs(redfin):
+    def _dl_one_cvs(url):
+        return download_one_cvs(redfin, url)
+
     resp = redfin.get('/county/345/CA/Santa-Clara-County/filter/sort=lo-days,property-type=house+condo+townhouse,min-price=450k,max-price=900k')
     with open('all.html', 'w+') as f:
         f.write(resp.content)
 
-    all_csv = map(download_one_cvs, dl_all)
+    all_csv = map(_dl_one_cvs, dl_all)
     csv_header = all_csv[0][0]
-    all_csv = map(lambda d: d[1:], all_csv)
-    csv_data = reduce(lambda l, r: l + r, all_csv)
-    with open('download_all.csv', 'w+') as f:
-        f.write(all_csv[0][0])
+    csv_data = list()
+    for c in all_csv:
+        csv_data += c[1]
 
-    data = data.strip('\n').strip('\r').split('\n')
-    csv_header = data[0].strip('\n').strip('\r').split(',')
-    csv_data = list(csv.reader(data[1:]))
+    with open('download_all.csv', 'w+') as f:
+        csv_out = csv.writer(f, quoting=csv.QUOTE_NONNUMERIC)
+        csv_out.writerow(csv_header)
+        map(csv_out.writerow, csv_data)
+
     csvdata = CsvData(csv_header, csv_data)
     urls = [c[0] for c in csvdata.iter_by_fields('URL')]
     data_store = dict()

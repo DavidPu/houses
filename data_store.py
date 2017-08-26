@@ -48,7 +48,7 @@ class CsvData(object):
 def sch_info(ds, url):
     details = ds['details']
     prop = details[url]
-    if 'schools' in prop:
+    if prop.get('schools'):
         elementary = prop['schools'][0]
         return [elementary[0], elementary[2], elementary[3].split(' ')[0]]
     else:
@@ -169,6 +169,7 @@ interested_fields = (
     "URL",
     "IS SENIOR",
     "PRICE",
+    "HOA/MONTH",
     "SCHOOL SCORE",
     "SCHOOL DISTANCE",
     "SCHOOL NAME",
@@ -176,13 +177,13 @@ interested_fields = (
     "DRIVE DURATION(MIN)",
     "DAYS ON MARKET",
     "PROPERTY TYPE",
+    "CITY",
     "LOCATION",
     "ZIP",
     "BEDS",
     "BATHS",
     "SQUARE FEET",
     "YEAR BUILT",
-    "HOA/MONTH",
     "FAVORITE",
     "NEXT OPEN HOUSE START TIME",
     "NEXT OPEN HOUSE END TIME"
