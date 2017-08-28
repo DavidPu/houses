@@ -231,7 +231,7 @@ def test_details():
 
 # test_details()
 redfin = Redfin()
-status = redfin.login('pulq@163.com', '@163.Com')
+status = redfin.login(os.environ.get('REDFIN_USER'), os.environ.get('REDFIN_PWD'))
 print('login status:', status)
 assert(status == 200)
 get_cvs(redfin)
