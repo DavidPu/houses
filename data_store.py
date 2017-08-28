@@ -145,7 +145,8 @@ def extend_is_senior(ds):
 
 
 data_store = json.load(open('redfin_data_store.json'))
-extend_distance_matrix(extend_school_info(data_store))
+# extend_distance_matrix(extend_school_info(data_store))
+extend_school_info(data_store)
 
 with open('redfin_data_store_processed.json', 'w+') as f:
     f.write(json.dumps(data_store))
@@ -172,8 +173,8 @@ interested_fields = (
     "SCHOOL SCORE",
     "SCHOOL DISTANCE",
     "SCHOOL NAME",
-    "DRIVE DISTANCE(KM)",
-    "DRIVE DURATION(MIN)",
+    # "DRIVE DISTANCE(KM)",
+    # "DRIVE DURATION(MIN)",
     "DAYS ON MARKET",
     "PROPERTY TYPE",
     "CITY",

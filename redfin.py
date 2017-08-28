@@ -125,11 +125,11 @@ def details(html):
                                   sch_rates, distances)
 
     def property_details(html):
-        prop = soup.find('div', {'data-rf-test-id': 'propertyDetails'})
-        if prop:
-            prop_desc = '\n'.join(map(lambda d: d.text, prop.find_all('div')))
-            info['prop_details'] = prop_desc
-            info['is_senior'] = prop_desc.find('Senior Community') > 0 or \
+        for script in soup(['script', 'style']):
+            script.extract()
+        prop_desc = soup.get_text()
+        info['prop_details'] = prop_desc
+        info['is_senior'] = prop_desc.find('Senior Community') > 0 or \
                 prop_desc.find('55+') > 0
 
     def react_json(html):
@@ -202,17 +202,23 @@ def get_cvs(redfin):
 
 
 def fetch_details(redfin, url):
-    print(url)
-    resp = redfin.get(url)
-    assert(resp.status_code == 200)
-    html = resp.content
     # use path instead:
+    u = url
     if url.find('redfin.com') > 0:
-        url = url.split('redfin.com')[1]
-    print(url)
-    fname = md5.md5(url).hexdigest()
-    with open('html/%s.html' % fname, 'w+') as f:
-        f.write(html)
+        u = url.split('redfin.com')[1]
+    print(u)
+    fname = '%s.html' % md5.md5(u).hexdigest()
+    fname = os.path.join('html', fname)
+    if os.path.exists(fname):
+        print("re-use pre-exiting HTML", fname)
+        return open(fname).read()
+    else:
+        resp = redfin.get(url)
+        assert(resp.status_code == 200)
+        resp.encoding = 'utf-8'
+        html = resp.content
+        with open(fname, mode='w+') as f:
+            f.write(html)
 
     return html
 
